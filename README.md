@@ -19,7 +19,7 @@ To get into Topify, follow these steps:
 <br><br>
 
 ## Note from the developer
-* Topify will have lots and lots of bugs and crashes, as it's currently in a pre-release stage. These issues will be resolved over time, however I don't have very much free-time and this "over time" may be a very long time. If you are consistently experiencing issues, please let me know through the [issues](https://github.com/AyeItsAxi/Topify/issues) tab on this repository.
+* Topify is highly unoptimized currently and will have lots and lots of bugs and crashes, as it's currently in a pre-release stage. These issues will be resolved over time, however I don't have very much free-time and this "over time" may be a very long time. If you are consistently experiencing issues, please let me know through the [issues](https://github.com/AyeItsAxi/Topify/issues) tab on this repository.
 
 <br><br>
 
