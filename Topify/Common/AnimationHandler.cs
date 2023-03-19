@@ -111,40 +111,6 @@ namespace Topify.Common
         /// <param name="targetColor">The color the object will be at the end of the duration selected</param>
         public static void ColorAnimation(DependencyObject targetObject, Duration time, Brush originatingColor, Brush targetColor)
         {
-            /*ColorAnimation animation;
-            animation = new ColorAnimation();
-            animation.From = originatingColor;
-            animation.To = targetColor;
-            animation.Duration = time;
-            Storyboard.SetTarget(animation, targetObject);
-            Storyboard.SetTargetProperty(animation, new PropertyPath(Border.BackgroundProperty));
-            var sb = new Storyboard();
-            sb.Children.Add(animation);
-            sb.Begin();
-            ColorAnimation colorChangeAnimation = new ColorAnimation();
-            colorChangeAnimation.From = originatingColor;
-            colorChangeAnimation.To = targetColor;
-            colorChangeAnimation.Duration = time;
-
-            PropertyPath colorTargetPath = new PropertyPath("(Border.Background).(SolidColorBrush.Color)");
-            Storyboard CellBackgroundChangeStory = new Storyboard();
-            Storyboard.SetTarget(colorChangeAnimation, targetObject);
-            Storyboard.SetTargetProperty(colorChangeAnimation, colorTargetPath);
-            CellBackgroundChangeStory.Children.Add(colorChangeAnimation);
-            CellBackgroundChangeStory.Begin();
-            var animation = new BrushAnimation
-            {
-                From = originatingColor,
-                To = targetColor,
-                Duration = time,
-            };
-            Storyboard.SetTarget(animation, targetObject);
-            Storyboard.SetTargetProperty(animation, new PropertyPath(Border.BorderBrushProperty));
-
-            var sb = new Storyboard();
-            sb.Children.Add(animation);
-            sb.Begin();
-            MessageBox.Show("BrushAnimation ran");*/
             BrushAnimation ba = new BrushAnimation();
             ba.From = originatingColor;
             ba.To = targetColor;

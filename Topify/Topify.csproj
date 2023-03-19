@@ -5,6 +5,8 @@
     <TargetFramework>net6.0-windows</TargetFramework>
     <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <UseWindowsForms>True</UseWindowsForms>
   </PropertyGroup>
 
   <ItemGroup>
@@ -34,6 +36,7 @@
     <None Remove="Lib\Fonts\Medium\GothamMedium.otf" />
     <None Remove="Lib\Fonts\Thin\Gotham-Thin.otf" />
     <None Remove="Lib\Fonts\XLight\Gotham-XLight.otf" />
+    <None Remove="Lib\Img\ColoredSpotify.png" />
     <None Remove="Lib\Img\PauseButton.svg" />
     <None Remove="Lib\Img\PlayButton.svg" />
     <None Remove="Lib\Img\SkipForward.svg" />
@@ -46,6 +49,7 @@
     <PackageReference Include="SharpVectors" Version="1.8.1" />
     <PackageReference Include="SpotifyAPI.Web" Version="7.0.0" />
     <PackageReference Include="SpotifyAPI.Web.Auth" Version="7.0.0" />
+    <PackageReference Include="System.Drawing.Common" Version="7.0.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -60,6 +64,7 @@
     <Resource Include="Lib\Fonts\Medium\GothamMedium.otf" />
     <Resource Include="Lib\Fonts\Thin\Gotham-Thin.otf" />
     <Resource Include="Lib\Fonts\XLight\Gotham-XLight.otf" />
+    <Resource Include="Lib\Img\ColoredSpotify.png" />
     <Resource Include="Lib\Img\PauseButton.svg" />
     <Resource Include="Lib\Img\PlayButton.svg" />
     <Resource Include="Lib\Img\SkipForward.svg" />

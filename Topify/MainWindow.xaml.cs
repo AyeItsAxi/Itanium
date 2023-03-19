@@ -1,25 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using Topify.Common;
-using SpotifyAPI;
 using SpotifyAPI.Web;
 using SpotifyAPI.Web.Auth;
 using Newtonsoft.Json;
 using static SpotifyAPI.Web.Scopes;
+using System.Timers;
+using System.Drawing;
+using System.IO;
+using Image = System.Drawing.Image;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.Net;
+using System.Windows.Threading;
+using System.Diagnostics.Eventing.Reader;
+using System.ComponentModel.DataAnnotations;
+using System.Windows.Forms;
 
 namespace Topify
 {
@@ -28,7 +31,7 @@ namespace Topify
     /// </summary>
     public partial class MainWindow : Window
     {
-        private SpotifyClient? spClient;
+        private static SpotifyClient? spClient;
         private static readonly EmbedIOAuthServer _server = new EmbedIOAuthServer(new Uri("http://localhost:5000/callback"), 5000);
         public MainWindow()
         {
@@ -37,11 +40,14 @@ namespace Topify
         }
         public void InitializeWindowSettings()
         {
+            AuthifyNotice.Visibility = Visibility.Visible;
             IntPtr hWnd = new WindowInteropHelper(this).EnsureHandle();
             var attribute = DWMWINDOWATTRIBUTE.DWMWA_WINDOW_CORNER_PREFERENCE;
             var preference = DWM_WINDOW_CORNER_PREFERENCE.DWMWCP_ROUND;
             DwmSetWindowAttribute(hWnd, attribute, ref preference, sizeof(uint));
-            DragContainer.Visibility = Visibility.Visible;
+            DragContainer.Visibility = Visibility.Hidden;
+            this.Left = 25;
+            this.Top = 25;
             GetClientOuath();
         }
         public async void GetClientOuath()
@@ -49,7 +55,7 @@ namespace Topify
             await StartAuthentication();
         }
         private static string? json;
-        private static async Task StartAuthentication()
+        private async Task StartAuthentication()
         {
             var (verifier, challenge) = PKCEUtil.GenerateCodes();
 
@@ -69,7 +75,7 @@ namespace Topify
             {
                 CodeChallenge = challenge,
                 CodeChallengeMethod = "S256",
-                Scope = new List<string> { UserReadEmail, UserReadPrivate, PlaylistReadPrivate, PlaylistReadCollaborative }
+                Scope = new List<string> { UserReadPlaybackState, UserModifyPlaybackState, UserReadPlaybackPosition }
             };
 
             Uri uri = request.ToUri();
@@ -82,23 +88,71 @@ namespace Topify
                 Console.WriteLine("Unable to open URL, manually open: {0}", uri);
             }
         }
-        private static async Task Start()
+        private Task Start()
         {
             var _token = JsonConvert.DeserializeObject<PKCETokenResponse>(json!);
             var authenticator = new PKCEAuthenticator("2aa7adaf3dd745d2a5da9ebb12588afe", _token!);
             authenticator.TokenRefreshed += (sender, token) => token = _token!;
             var config = SpotifyClientConfig.CreateDefault()
         .WithAuthenticator(authenticator);
-
-            var spotify = new SpotifyClient(config);
-
-            var me = await spotify.UserProfile.Current();
-            MessageBox.Show($"Welcome {me.DisplayName} ({me.Id}), you're authenticated!");
-
-            var playlists = await spotify.PaginateAll(await spotify.Playlists.CurrentUsers().ConfigureAwait(false));
-            MessageBox.Show($"Total Playlists in your Account: {playlists.Count}");
-
+            spClient = new SpotifyClient(config);
+            var me = spClient.UserProfile.Current();
+            System.Windows.Application.Current.Dispatcher.Invoke(AccessAcquired, System.Windows.Threading.DispatcherPriority.SystemIdle);
             _server.Dispose();
+            return Task.CompletedTask;
+        }
+        public async void AccessAcquired()
+        {
+            await RefreshDynamicContent();
+            startCheckPlaybackChanged();
+            AnimationHandler.FadeAnimation(AuthifyNotice, 0.2, AuthifyNotice.Opacity, 0);
+            await Task.Delay(205);
+            AuthifyNotice.Visibility = Visibility.Hidden;
+        }
+        private async Task<Task> RefreshDynamicContent()
+        {
+            if (spClient!.Player.GetCurrentPlayback().Result.IsPlaying)
+            {
+                PlaybackPlay();
+                CurrentlyPlaying track = await spClient!.Player.GetCurrentlyPlaying(new PlayerCurrentlyPlayingRequest { Market = "from_token" });
+                FullTrack ft = (FullTrack)track.Item;
+                trackLength = ft.DurationMs;
+                seekedLength = spClient!.Player.GetCurrentPlayback().Result.ProgressMs;
+                if (trackLength - seekedLength > 5000)
+                {
+                    isResume = true;
+                    resumeFrom = seekedLength;
+                }
+                else if (trackLength - seekedLength < 5000)
+                {
+                    isResume = false;
+                    resumeFrom = 0;
+                }
+                TickStart();
+                startStatusBarTimer();
+                spotifyUrl = ft.Uri;
+                NowPlayingName.Content = ft.Name;
+                NowPlayingArtist.Content = ft.Artists[0].Name;
+                WebClient wc = new();
+                await wc.DownloadFileTaskAsync(ft.Album.Images[0].Url, "i.tmp");
+                BitmapImage canvas = new BitmapImage();
+                canvas.BeginInit();
+                canvas.StreamSource = new MemoryStream(File.ReadAllBytes("i.tmp"));
+                canvas.UriSource = new Uri(ft.Album.Images[0].Url);
+                canvas.EndInit();
+                File.Delete("i.tmp");
+                Bitmap canvasAsBitmap = ConvertBitmapImageToBitmap(canvas);
+                Bitmap resizedCanvas = ResizeBitmap(canvasAsBitmap, 96, 96);
+                BitmapImage canvasResized = BitmapToBitmapImage(resizedCanvas);
+                AlbumCanvas.ImageSource = canvasResized;
+                SolidColorBrush dominantColor = new(getDominantColor(ConvertBitmapImageToBitmap(canvas)));
+                MainGrid.Background = dominantColor;
+            }
+            else
+            {
+                PlaybackPause();
+            }
+            return Task.CompletedTask;
         }
         // The enum flag for DwmSetWindowAttribute's second parameter, which tells the function what attribute to set.
         // Copied from dwmapi.h
@@ -133,42 +187,356 @@ namespace Topify
             }
         }
 
-        private void PreviousSong_MouseEnter(object sender, MouseEventArgs e)
+        private void PreviousSong_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            SkipBackGeometry.Brush = Brushes.White;
-            AnimationHandler.FadeAnimation(SkipBackDrawingImage, 0.2, SkipBackDrawingImage.Opacity, 1);
+            SkipBackGeometry.Brush = System.Windows.Media.Brushes.White;
+            SkipBackDrawingImage.Opacity = 1;
         }
 
-        private async void PreviousSong_MouseLeave(object sender, MouseEventArgs e)
+        private void PreviousSong_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            AnimationHandler.FadeAnimation(SkipBackDrawingImage, 0.2, SkipBackDrawingImage.Opacity, 0.3);
-            await Task.Delay(225);
-            SkipBackGeometry.Brush = Brushes.Black;
+            SkipBackDrawingImage.Opacity = 0.3;
+            SkipBackGeometry.Brush = System.Windows.Media.Brushes.Black;
         }
 
-        private void PreviousSong_MouseUp(object sender, MouseButtonEventArgs e)
+        private async void PreviousSong_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            MessageBox.Show("Back");
+            await spClient!.Player.SkipPrevious();
+            await Task.Delay(200);
+            await RefreshDynamicContent();
+            TickStart();
+            startStatusBarTimer();
         }
 
-        private void NextSong_MouseEnter(object sender, MouseEventArgs e)
+        private void NextSong_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            SkipForwardGeometry.Brush = Brushes.White;
-            AnimationHandler.FadeAnimation(SkipForwardDrawingImage, 0.2, SkipForwardDrawingImage.Opacity, 1);
+            SkipForwardGeometry.Brush = System.Windows.Media.Brushes.White;
+            SkipForwardDrawingImage.Opacity = 1;
         }
 
-        private async void NextSong_MouseLeave(object sender, MouseEventArgs e)
+        private void NextSong_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
         {
-            AnimationHandler.FadeAnimation(SkipForwardDrawingImage, 0.2, SkipForwardDrawingImage.Opacity, 0.3);
-            await Task.Delay(225);
-            SkipForwardGeometry.Brush = Brushes.Black;
+            SkipForwardDrawingImage.Opacity = 0.3;
+            SkipForwardGeometry.Brush = System.Windows.Media.Brushes.Black;
         }
 
         private async void NextSong_MouseUp(object sender, MouseButtonEventArgs e)
         {
             await spClient!.Player.SkipNext();
-            var pb = await spClient.Player.GetCurrentPlayback();
-            MessageBox.Show(pb.IsPlaying.ToString());
+            await Task.Delay(200);
+            await RefreshDynamicContent();
+            TickStart();
+            startStatusBarTimer();
+        }
+
+        public Bitmap ResizeBitmap(Bitmap bmp, int width, int height)
+        {
+            Bitmap result = new Bitmap(width, height);
+            using (Graphics g = Graphics.FromImage(result))
+            {
+                g.DrawImage(bmp, 0, 0, width, height);
+            }
+            return result;
+        }
+
+        public static Bitmap ConvertBitmapImageToBitmap(BitmapImage bitmapImage)
+        {
+            using (MemoryStream outStream = new MemoryStream())
+            {
+                BitmapEncoder enc = new BmpBitmapEncoder();
+                enc.Frames.Add(BitmapFrame.Create(bitmapImage));
+                enc.Save(outStream);
+                System.Drawing.Bitmap bitmap = new System.Drawing.Bitmap(outStream);
+
+                return new Bitmap(bitmap);
+            }
+        }
+
+        public System.Windows.Media.Color getDominantColor(System.Drawing.Bitmap bmp)
+        {
+            BitmapData srcData = bmp.LockBits(new System.Drawing.Rectangle(0, 0, bmp.Width, bmp.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+            int stride = srcData.Stride;
+
+            IntPtr Scan0 = srcData.Scan0;
+
+            int[] totals = new int[] { 0, 0, 0 };
+
+            int width = bmp.Width;
+            int height = bmp.Height;
+
+            unsafe
+            {
+                byte* p = (byte*)(void*)Scan0;
+
+                for (int y = 0; y < height; y++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        for (int color = 0; color < 3; color++)
+                        {
+                            int idx = (y * stride) + x * 4 + color;
+                            totals[color] += p[idx];
+                        }
+                    }
+                }
+            }
+
+            int avgB = totals[0] / (width * height);
+            int avgG = totals[1] / (width * height);
+            int avgR = totals[2] / (width * height);
+
+            bmp.UnlockBits(srcData);
+            return System.Windows.Media.Color.FromRgb(Convert.ToByte(avgR), Convert.ToByte(avgG), Convert.ToByte(avgB));
+        }
+
+        public static Bitmap ResizeImage(Image image, int width, int height)
+        {
+            var destRect = new System.Drawing.Rectangle(0, 0, width, height);
+            var destImage = new Bitmap(width, height);
+
+            destImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
+
+            using (var graphics = Graphics.FromImage(destImage))
+            {
+                graphics.CompositingMode = CompositingMode.SourceCopy;
+                graphics.CompositingQuality = CompositingQuality.HighQuality;
+                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                graphics.SmoothingMode = SmoothingMode.HighQuality;
+                graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
+
+                using (var wrapMode = new ImageAttributes())
+                {
+                    wrapMode.SetWrapMode(WrapMode.TileFlipXY);
+                    graphics.DrawImage(image, destRect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, wrapMode);
+                }
+            }
+
+            return destImage;
+        }
+
+        public static BitmapImage BitmapToBitmapImage(Bitmap bitmap)
+        {
+            using (MemoryStream memory = new MemoryStream())
+            {
+                bitmap.Save(memory, ImageFormat.Png);
+                memory.Position = 0;
+                BitmapImage bitmapImage = new BitmapImage();
+                bitmapImage.BeginInit();
+                bitmapImage.StreamSource = memory;
+                bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+                bitmapImage.EndInit();
+                return bitmapImage;
+            }
+        }
+
+        public System.Timers.Timer statusTime;
+        public System.Timers.Timer ensureTimer;
+        public OffsetWatch ow;
+        public int trackLength;
+        public string spotifyUrl;
+        public bool isResume = false;
+        public int resumeFrom;
+        public int seekedLength;
+        public int lastKnownSeek;
+        public int i = 0;
+
+        private void startStatusBarTimer()
+        {
+            statusTime = new System.Timers.Timer();
+            statusTime.Interval = 2000;
+            statusTime.Elapsed += new System.Timers.ElapsedEventHandler(statusTimeElapsed);
+            statusTime.Enabled = true;
+        }
+        private void statusTimeElapsed(object sender, ElapsedEventArgs e)
+        {
+            System.Windows.Application.Current.Dispatcher.Invoke(UpdateProgress, System.Windows.Threading.DispatcherPriority.SystemIdle);
+        }
+        
+        private void UpdateProgress()
+        {
+            NowPlayingProgress.Value = (double)ow.ElapsedTimeSpan.TotalMilliseconds / (double)trackLength * 100;
+            int seeked = spClient!.Player.GetCurrentPlayback().Result.ProgressMs;
+            if (lastKnownSeek - seeked > 4000 || trackLength - seeked < 0)
+            {
+                ow = new OffsetWatch(TimeSpan.FromMilliseconds(seeked));
+                ow.Start();
+            }
+            if (seeked > trackLength || seeked < 0 || seeked == lastKnownSeek)
+            {
+                ow.Stop();
+                RefreshDynamicContent();
+            }
+            lastKnownSeek = seeked;
+        }
+
+        private void startCheckPlaybackChanged()
+        {
+            ensureTimer = new System.Timers.Timer();
+            ensureTimer.Interval = 2500;
+            ensureTimer.Elapsed += new System.Timers.ElapsedEventHandler(playbackchangedElapsed);
+            ensureTimer.Enabled = true;
+        }
+        private async void playbackchangedElapsed(object? sender, ElapsedEventArgs e)
+        {
+            CurrentlyPlaying track = await spClient!.Player.GetCurrentlyPlaying(new PlayerCurrentlyPlayingRequest { Market = "from_token" });
+            FullTrack ft = (FullTrack)track.Item;
+            bool isPlaying = spClient!.Player.GetCurrentPlayback().Result.IsPlaying;
+            if (ft.Uri == null || ft.Uri != spotifyUrl)
+            {
+                System.Windows.Application.Current.Dispatcher.Invoke(RefreshDynamicContent, DispatcherPriority.SystemIdle);
+            }
+            if (isPlaying)
+            {
+                System.Windows.Application.Current.Dispatcher.Invoke(PlaybackPlay, DispatcherPriority.SystemIdle);
+            }
+            else if (!isPlaying)
+            {
+                System.Windows.Application.Current.Dispatcher.Invoke(PlaybackPause, DispatcherPriority.SystemIdle);
+            }
+        }
+
+        private void PlaybackPause()
+        {
+            PlayButtonImage.Visibility = Visibility.Visible;
+            PauseButtonImage.Visibility = Visibility.Hidden;
+            PlayButtonCircle.Visibility = Visibility.Visible;
+            PauseButtonCircle.Visibility = Visibility.Hidden;
+            PlayButtonHandler.Visibility = Visibility.Visible;
+            PauseButtonHandler.Visibility = Visibility.Hidden;
+        }
+
+        private void PlaybackPlay()
+        {
+            PlayButtonImage.Visibility = Visibility.Hidden;
+            PauseButtonImage.Visibility = Visibility.Visible;
+            PlayButtonCircle.Visibility = Visibility.Hidden;
+            PauseButtonCircle.Visibility = Visibility.Visible;
+            PlayButtonHandler.Visibility = Visibility.Hidden;
+            PauseButtonHandler.Visibility = Visibility.Visible;
+        }
+
+        private void TickStart()
+        {
+            ow = new(TimeSpan.FromMilliseconds(resumeFrom));
+            ow.Start();
+        }
+        
+        private void Image_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            PlayButtonImage.Margin = new Thickness(332, 45, 13, 13);
+            PauseButtonImage.Margin = new Thickness(332, 45, 13, 13);
+        }
+
+        private void Image_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            PlayButtonImage.Margin = new Thickness(333, 46, 14, 14);
+            PauseButtonImage.Margin = new Thickness(333, 46, 14, 14);
+        }
+
+        public static string CutStart(string s, string what)
+        {
+            if (s.StartsWith(what))
+                return s.Substring(what.Length);
+            else
+                return s;
+        }
+
+        private void Image_MouseEnter_1(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            AnimationHandler.FadeIn(SpotifyIconHoverBorder, 0.3);
+        }
+
+        private void Image_MouseLeave_1(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            AnimationHandler.FadeOut(SpotifyIconHoverBorder, 0.3);
+        }
+
+        private void Image_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            BrowserUtil.Open(new Uri(spotifyUrl));
+        }
+
+        private async void Image_MouseUp_1(object sender, MouseButtonEventArgs e)
+        {
+            PlaybackPlay();
+            await spClient!.Player.ResumePlayback();
+            if (statusTime != null)
+            {
+                statusTime.Enabled = true;
+            }
+            if (ensureTimer != null)
+            {
+                ensureTimer.Enabled = true;
+            }
+        }
+
+        private async void PauseButtonCircle_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            PlaybackPause();
+            await spClient!.Player.PausePlayback();
+            if (statusTime != null)
+            {
+                statusTime.Enabled = false;
+            }
+            if (ensureTimer != null)
+            {
+                ensureTimer.Enabled = false;
+            }
+            
+        }
+
+        private void AlbumCoverMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            WindowPositionOptionHost.Visibility = Visibility.Visible;
+        }
+
+        private void PlacementOption1_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            this.Top = 25;
+            this.Left = 25;
+            WindowPositionOptionHost.Visibility = Visibility.Hidden;
+        }
+
+        private void PlacementOption2_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            int scrHeight = Screen.PrimaryScreen.WorkingArea.Height;
+            this.Top = scrHeight - 95;
+            this.Left = 25;
+            WindowPositionOptionHost.Visibility = Visibility.Hidden;
+        }
+
+        private void PlacementOption3_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            int scrHeight = Screen.PrimaryScreen.WorkingArea.Height;
+            int scrWidth = Screen.PrimaryScreen.WorkingArea.Width;
+            this.Top = 25;
+            this.Left = scrWidth - 385;
+            WindowPositionOptionHost.Visibility = Visibility.Hidden;
+        }
+
+        private void PlacementOption4_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            int scrHeight = Screen.PrimaryScreen.WorkingArea.Height;
+            int scrWidth = Screen.PrimaryScreen.WorkingArea.Width;
+            this.Top = scrHeight - 95;
+            this.Left = scrWidth - 385;
+            WindowPositionOptionHost.Visibility = Visibility.Hidden;
+        }
+
+        private void TrafficLightClose_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            TrafficLightCloseEllipse.Fill = (SolidColorBrush)new BrushConverter().ConvertFromString("#5e5e5e")!;
+        }
+
+        private void TrafficLightClose_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            TrafficLightCloseEllipse.Fill = (SolidColorBrush)new BrushConverter().ConvertFromString("#181818")!;
+        }
+
+        private void TrafficLightClose_MouseUp(object sender, MouseButtonEventArgs e)
+        {
+            System.Windows.Application.Current.Shutdown(1);
         }
     }
 }
