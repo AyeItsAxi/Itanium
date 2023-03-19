@@ -7,6 +7,7 @@
     <UseWPF>true</UseWPF>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseWindowsForms>True</UseWindowsForms>
+    <ApplicationIcon>Lib\Img\TopifyIcon.ico</ApplicationIcon>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,7 +26,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Remove="Lib\Debug\Img\AlbumCanvas.png" />
     <None Remove="Lib\Fonts\Black\Gotham-Black.otf" />
     <None Remove="Lib\Fonts\Bold\Gotham-Bold.otf" />
     <None Remove="Lib\Fonts\Circular\CircularStd-Black.otf" />
@@ -43,6 +43,11 @@
     <None Remove="Lib\Img\SkipPrevious.svg" />
     <None Remove="Lib\Img\Spotify.png" />
     <None Remove="Lib\Img\Spotify.svg" />
+    <None Remove="Lib\Img\TopifyIcon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Lib\Img\TopifyIcon.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -53,7 +58,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Resource Include="Lib\Debug\Img\AlbumCanvas.png" />
     <Resource Include="Lib\Fonts\Black\Gotham-Black.otf" />
     <Resource Include="Lib\Fonts\Bold\Gotham-Bold.otf" />
     <Resource Include="Lib\Fonts\Circular\CircularStd-Black.otf" />
@@ -71,6 +75,7 @@
     <Resource Include="Lib\Img\SkipPrevious.svg" />
     <Resource Include="Lib\Img\Spotify.png" />
     <Resource Include="Lib\Img\Spotify.svg" />
+    <Resource Include="Lib\Img\TopifyIcon.ico" />
   </ItemGroup>
 
 </Project>
