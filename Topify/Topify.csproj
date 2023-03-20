@@ -9,11 +9,19 @@
     <UseWindowsForms>True</UseWindowsForms>
     <ApplicationIcon>Lib\Img\TopifyIcon.ico</ApplicationIcon>
     <Title>Topify</Title>
-    <Version>0.8.0.0-pre-release</Version>
+    <Version>0.8.1.0-pre-release</Version>
     <Company>4drian.software</Company>
     <Authors>Axi</Authors>
-    <AssemblyVersion>0.8.0.0</AssemblyVersion>
-    <FileVersion>0.8.0.0</FileVersion>
+    <AssemblyVersion>0.8.1.0</AssemblyVersion>
+    <FileVersion>0.8.1.0</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <NoWarn>1701;1702;CS4014;CS8618;CS8622;CS8625;SYSLIB0014</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <NoWarn>1701;1702;CS4014;CS8618;CS8622;CS8625;SYSLIB0014</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

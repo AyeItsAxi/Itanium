@@ -20,10 +20,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.Net;
 using System.Windows.Threading;
-using System.Diagnostics.Eventing.Reader;
-using System.ComponentModel.DataAnnotations;
 using System.Windows.Forms;
-using MessageBox = System.Windows.MessageBox;
 
 namespace Topify
 {
@@ -33,12 +30,24 @@ namespace Topify
     public partial class MainWindow : Window
     {
         private static SpotifyClient? spClient;
-        private static readonly EmbedIOAuthServer _server = new EmbedIOAuthServer(new Uri("http://localhost:5000/callback"), 5000);
+        private static readonly EmbedIOAuthServer _server = new(new("http://localhost:5000/callback"), 5000);
+        public System.Timers.Timer statusTime;
+        public System.Timers.Timer ensureTimer;
+        public OffsetWatch ow;
+        public int trackLength;
+        public string spotifyUrl;
+        public bool isResume = false;
+        public int resumeFrom;
+        public int seekedLength;
+        public int lastKnownSeek;
+        public int i = 0;
+        
         public MainWindow()
         {
             InitializeComponent();
             InitializeWindowSettings();
         }
+        
         public void InitializeWindowSettings()
         {
             AuthifyNotice.Visibility = Visibility.Visible;
@@ -51,11 +60,14 @@ namespace Topify
             this.Top = 25;
             GetClientOuath();
         }
+        
         public async void GetClientOuath()
         {
             await StartAuthentication();
         }
+        
         private static string? json;
+
         private async Task StartAuthentication()
         {
             var (verifier, challenge) = PKCEUtil.GenerateCodes();
@@ -89,6 +101,7 @@ namespace Topify
                 Console.WriteLine("Unable to open URL, manually open: {0}", uri);
             }
         }
+        
         private Task Start()
         {
             var _token = JsonConvert.DeserializeObject<PKCETokenResponse>(json!);
@@ -98,18 +111,20 @@ namespace Topify
         .WithAuthenticator(authenticator);
             spClient = new SpotifyClient(config);
             var me = spClient.UserProfile.Current();
-            System.Windows.Application.Current.Dispatcher.Invoke(AccessAcquired, System.Windows.Threading.DispatcherPriority.SystemIdle);
+            System.Windows.Application.Current.Dispatcher.Invoke(AccessAcquired, DispatcherPriority.SystemIdle);
             _server.Dispose();
             return Task.CompletedTask;
         }
+        
         public async void AccessAcquired()
         {
             await RefreshDynamicContent();
-            startCheckPlaybackChanged();
+            StartCheckPlaybackChanged();
             AnimationHandler.FadeAnimation(AuthifyNotice, 0.2, AuthifyNotice.Opacity, 0);
             await Task.Delay(205);
             AuthifyNotice.Visibility = Visibility.Hidden;
         }
+        
         private async Task<Task> RefreshDynamicContent()
         {
             if (spClient!.Player.GetCurrentPlayback().Result.IsPlaying)
@@ -130,13 +145,13 @@ namespace Topify
                     resumeFrom = 0;
                 }
                 TickStart();
-                startStatusBarTimer();
+                StartStatusBarTimer();
                 spotifyUrl = ft.Uri;
                 NowPlayingName.Content = ft.Name;
                 NowPlayingArtist.Content = ft.Artists[0].Name;
                 WebClient wc = new();
                 await wc.DownloadFileTaskAsync(ft.Album.Images[0].Url, "i.tmp");
-                BitmapImage canvas = new BitmapImage();
+                BitmapImage canvas = new();
                 canvas.BeginInit();
                 canvas.StreamSource = new MemoryStream(File.ReadAllBytes("i.tmp"));
                 canvas.UriSource = new Uri(ft.Album.Images[0].Url);
@@ -146,7 +161,7 @@ namespace Topify
                 Bitmap resizedCanvas = ResizeBitmap(canvasAsBitmap, 96, 96);
                 BitmapImage canvasResized = BitmapToBitmapImage(resizedCanvas);
                 AlbumCanvas.ImageSource = canvasResized;
-                SolidColorBrush dominantColor = new(getDominantColor(ConvertBitmapImageToBitmap(canvas)));
+                SolidColorBrush dominantColor = new(GetDominantColor(ConvertBitmapImageToBitmap(canvas)));
                 MainGrid.Background = dominantColor;
             }
             else
@@ -155,16 +170,12 @@ namespace Topify
             }
             return Task.CompletedTask;
         }
-        // The enum flag for DwmSetWindowAttribute's second parameter, which tells the function what attribute to set.
-        // Copied from dwmapi.h
+        
         public enum DWMWINDOWATTRIBUTE
         {
             DWMWA_WINDOW_CORNER_PREFERENCE = 33
         }
 
-        // The DWM_WINDOW_CORNER_PREFERENCE enum for DwmSetWindowAttribute's third parameter, which tells the function
-        // what value of the enum to set.
-        // Copied from dwmapi.h
         public enum DWM_WINDOW_CORNER_PREFERENCE
         {
             DWMWCP_DEFAULT = 0,
@@ -172,8 +183,7 @@ namespace Topify
             DWMWCP_ROUND = 2,
             DWMWCP_ROUNDSMALL = 3
         }
-
-        // Import dwmapi.dll and define DwmSetWindowAttribute in C# corresponding to the native function.
+        
         [DllImport("dwmapi.dll", CharSet = CharSet.Unicode, PreserveSig = false)]
         internal static extern void DwmSetWindowAttribute(IntPtr hwnd,
                                                          DWMWINDOWATTRIBUTE attribute,
@@ -207,7 +217,7 @@ namespace Topify
             await Task.Delay(200);
             await RefreshDynamicContent();
             TickStart();
-            startStatusBarTimer();
+            StartStatusBarTimer();
         }
 
         private void NextSong_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
@@ -229,12 +239,12 @@ namespace Topify
             await Task.Delay(200);
             await RefreshDynamicContent();
             TickStart();
-            startStatusBarTimer();
+            StartStatusBarTimer();
         }
 
-        public Bitmap ResizeBitmap(Bitmap bmp, int width, int height)
+        public static Bitmap ResizeBitmap(Bitmap bmp, int width, int height)
         {
-            Bitmap result = new Bitmap(width, height);
+            Bitmap result = new(width, height);
             using (Graphics g = Graphics.FromImage(result))
             {
                 g.DrawImage(bmp, 0, 0, width, height);
@@ -244,20 +254,18 @@ namespace Topify
 
         public static Bitmap ConvertBitmapImageToBitmap(BitmapImage bitmapImage)
         {
-            using (MemoryStream outStream = new MemoryStream())
-            {
-                BitmapEncoder enc = new BmpBitmapEncoder();
-                enc.Frames.Add(BitmapFrame.Create(bitmapImage));
-                enc.Save(outStream);
-                System.Drawing.Bitmap bitmap = new System.Drawing.Bitmap(outStream);
+            using MemoryStream outStream = new();
+            BitmapEncoder enc = new BmpBitmapEncoder();
+            enc.Frames.Add(BitmapFrame.Create(bitmapImage));
+            enc.Save(outStream);
+            Bitmap bitmap = new(outStream);
 
-                return new Bitmap(bitmap);
-            }
+            return new Bitmap(bitmap);
         }
 
-        public System.Windows.Media.Color getDominantColor(System.Drawing.Bitmap bmp)
+        public System.Windows.Media.Color GetDominantColor(Bitmap bmp)
         {
-            BitmapData srcData = bmp.LockBits(new System.Drawing.Rectangle(0, 0, bmp.Width, bmp.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            BitmapData srcData = bmp.LockBits(new Rectangle(0, 0, bmp.Width, bmp.Height), ImageLockMode.ReadOnly, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 
             int stride = srcData.Stride;
 
@@ -295,7 +303,7 @@ namespace Topify
 
         public static Bitmap ResizeImage(Image image, int width, int height)
         {
-            var destRect = new System.Drawing.Rectangle(0, 0, width, height);
+            var destRect = new Rectangle(0, 0, width, height);
             var destImage = new Bitmap(width, height);
 
             destImage.SetResolution(image.HorizontalResolution, image.VerticalResolution);
@@ -308,11 +316,9 @@ namespace Topify
                 graphics.SmoothingMode = SmoothingMode.HighQuality;
                 graphics.PixelOffsetMode = PixelOffsetMode.HighQuality;
 
-                using (var wrapMode = new ImageAttributes())
-                {
-                    wrapMode.SetWrapMode(WrapMode.TileFlipXY);
-                    graphics.DrawImage(image, destRect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, wrapMode);
-                }
+                using var wrapMode = new ImageAttributes();
+                wrapMode.SetWrapMode(WrapMode.TileFlipXY);
+                graphics.DrawImage(image, destRect, 0, 0, image.Width, image.Height, GraphicsUnit.Pixel, wrapMode);
             }
 
             return destImage;
@@ -320,45 +326,34 @@ namespace Topify
 
         public static BitmapImage BitmapToBitmapImage(Bitmap bitmap)
         {
-            using (MemoryStream memory = new MemoryStream())
-            {
-                bitmap.Save(memory, ImageFormat.Png);
-                memory.Position = 0;
-                BitmapImage bitmapImage = new BitmapImage();
-                bitmapImage.BeginInit();
-                bitmapImage.StreamSource = memory;
-                bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
-                bitmapImage.EndInit();
-                return bitmapImage;
-            }
+            using MemoryStream memory = new();
+            bitmap.Save(memory, ImageFormat.Png);
+            memory.Position = 0;
+            BitmapImage bitmapImage = new();
+            bitmapImage.BeginInit();
+            bitmapImage.StreamSource = memory;
+            bitmapImage.CacheOption = BitmapCacheOption.OnLoad;
+            bitmapImage.EndInit();
+            return bitmapImage;
         }
 
-        public System.Timers.Timer statusTime;
-        public System.Timers.Timer ensureTimer;
-        public OffsetWatch ow;
-        public int trackLength;
-        public string spotifyUrl;
-        public bool isResume = false;
-        public int resumeFrom;
-        public int seekedLength;
-        public int lastKnownSeek;
-        public int i = 0;
-
-        private void startStatusBarTimer()
+        private void StartStatusBarTimer()
         {
-            statusTime = new System.Timers.Timer();
-            statusTime.Interval = 2000;
-            statusTime.Elapsed += new System.Timers.ElapsedEventHandler(statusTimeElapsed);
+            statusTime = new()
+            {
+                Interval = 2000
+            };
+            statusTime.Elapsed += new(StatusTimeElapsed);
             statusTime.Enabled = true;
         }
-        private void statusTimeElapsed(object sender, ElapsedEventArgs e)
+        private void StatusTimeElapsed(object sender, ElapsedEventArgs e)
         {
-            System.Windows.Application.Current.Dispatcher.Invoke(UpdateProgress, System.Windows.Threading.DispatcherPriority.SystemIdle);
+            System.Windows.Application.Current.Dispatcher.Invoke(UpdateProgress, DispatcherPriority.SystemIdle);
         }
         
         private void UpdateProgress()
         {
-            NowPlayingProgress.Value = (double)ow.ElapsedTimeSpan.TotalMilliseconds / (double)trackLength * 100;
+            NowPlayingProgress.Value = ow.ElapsedTimeSpan.TotalMilliseconds / trackLength * 100;
             int seeked = spClient!.Player.GetCurrentPlayback().Result.ProgressMs;
             if (lastKnownSeek - seeked > 4000 || trackLength - seeked < 0)
             {
@@ -371,17 +366,18 @@ namespace Topify
                 RefreshDynamicContent();
             }
             lastKnownSeek = seeked;
-
         }
 
-        private void startCheckPlaybackChanged()
+        private void StartCheckPlaybackChanged()
         {
-            ensureTimer = new();
-            ensureTimer.Interval = 2500;
-            ensureTimer.Elapsed += new ElapsedEventHandler(playbackchangedElapsed);
+            ensureTimer = new()
+            {
+                Interval = 2500
+            };
+            ensureTimer.Elapsed += new(PlaybackchangedElapsed);
             ensureTimer.Enabled = true;
         }
-        private async void playbackchangedElapsed(object? sender, ElapsedEventArgs e)
+        private async void PlaybackchangedElapsed(object? sender, ElapsedEventArgs e)
         {
             CurrentlyPlaying track = await spClient!.Player.GetCurrentlyPlaying(new PlayerCurrentlyPlayingRequest { Market = "from_token" });
             FullTrack ft = (FullTrack)track.Item;
@@ -469,7 +465,7 @@ namespace Topify
             await spClient!.Player.ResumePlayback();
             ow = new(TimeSpan.FromMilliseconds(seeked));
             ow.Start();
-            startStatusBarTimer();
+            StartStatusBarTimer();
         }
 
         private async void PauseButtonCircle_MouseUp(object sender, MouseButtonEventArgs e)

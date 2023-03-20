@@ -1,23 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace Topify
 {
     public class OffsetWatch
     {
-        private Stopwatch _stopwatch = null;
+        private readonly Stopwatch _stopwatch = null;
         TimeSpan _offsetTimeSpan;
 
         public OffsetWatch(TimeSpan offsetElapsedTimeSpan)
         {
             _offsetTimeSpan = offsetElapsedTimeSpan;
-            _stopwatch = new Stopwatch();
+            _stopwatch = new();
         }
-
+        
         public void Start()
         {
             _stopwatch.Start();

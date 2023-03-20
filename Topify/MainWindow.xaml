@@ -3,7 +3,6 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:svgc="http://sharpvectors.codeplex.com/svgc/"
         mc:Ignorable="d"
         Title="Topify" Height="72" Width="360" WindowStyle="None" AllowsTransparency="True" Topmost="True">
     <Window.Resources>
@@ -44,14 +43,6 @@
                 <DropShadowEffect BlurRadius="25" ShadowDepth="0" Opacity="0.5"/>
             </Label.Effect>
         </Label>
-        <!--<SVG:SvgViewbox x:Name="Spoticon" Opacity="0.7" Source="/Lib/Img/Spotify.svg" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="9, 0" Width="15" Height="15"/>-->
-
-        <!--11 11-->
-
-        <!--def=334,46,14,14-->
-        <!--enlla=332,44,12,12-->
-        <!--enlsm=333,45,13,13-->
-
         <Border Name="DragContainer" BorderBrush="Transparent" MouseDown="DragContainer_MouseDown" BorderThickness="100" Visibility="Hidden"/>
         <ProgressBar Name="NowPlayingProgress" Margin="108,54,0,0" HorizontalAlignment="Left" Value="0" Height="21" VerticalAlignment="Top" Width="169" BorderBrush="{x:Null}">
             <ProgressBar.Effect>
