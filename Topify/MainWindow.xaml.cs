@@ -23,6 +23,7 @@ using System.Windows.Threading;
 using System.Diagnostics.Eventing.Reader;
 using System.ComponentModel.DataAnnotations;
 using System.Windows.Forms;
+using MessageBox = System.Windows.MessageBox;
 
 namespace Topify
 {
@@ -370,13 +371,14 @@ namespace Topify
                 RefreshDynamicContent();
             }
             lastKnownSeek = seeked;
+
         }
 
         private void startCheckPlaybackChanged()
         {
-            ensureTimer = new System.Timers.Timer();
+            ensureTimer = new();
             ensureTimer.Interval = 2500;
-            ensureTimer.Elapsed += new System.Timers.ElapsedEventHandler(playbackchangedElapsed);
+            ensureTimer.Elapsed += new ElapsedEventHandler(playbackchangedElapsed);
             ensureTimer.Enabled = true;
         }
         private async void playbackchangedElapsed(object? sender, ElapsedEventArgs e)
@@ -439,7 +441,7 @@ namespace Topify
         public static string CutStart(string s, string what)
         {
             if (s.StartsWith(what))
-                return s.Substring(what.Length);
+                return s[what.Length..];
             else
                 return s;
         }
@@ -462,30 +464,21 @@ namespace Topify
         private async void Image_MouseUp_1(object sender, MouseButtonEventArgs e)
         {
             PlaybackPlay();
+            int seeked = spClient!.Player.GetCurrentPlayback().Result.ProgressMs;
+            lastKnownSeek = seeked;
             await spClient!.Player.ResumePlayback();
-            if (statusTime != null)
-            {
-                statusTime.Enabled = true;
-            }
-            if (ensureTimer != null)
-            {
-                ensureTimer.Enabled = true;
-            }
+            ow = new(TimeSpan.FromMilliseconds(seeked));
+            ow.Start();
+            startStatusBarTimer();
         }
 
         private async void PauseButtonCircle_MouseUp(object sender, MouseButtonEventArgs e)
         {
             PlaybackPause();
             await spClient!.Player.PausePlayback();
-            if (statusTime != null)
-            {
-                statusTime.Enabled = false;
-            }
-            if (ensureTimer != null)
-            {
-                ensureTimer.Enabled = false;
-            }
-            
+            statusTime.Enabled = false;
+            statusTime = null;
+            ow.Stop();
         }
 
         private void AlbumCoverMouseDown(object sender, MouseButtonEventArgs e)
