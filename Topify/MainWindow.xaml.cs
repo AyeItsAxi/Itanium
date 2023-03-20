@@ -114,6 +114,7 @@ namespace Topify
             if (spClient!.Player.GetCurrentPlayback().Result.IsPlaying)
             {
                 PlaybackPlay();
+                NowPlayingProgress.Value = 0;
                 CurrentlyPlaying track = await spClient!.Player.GetCurrentlyPlaying(new PlayerCurrentlyPlayingRequest { Market = "from_token" });
                 FullTrack ft = (FullTrack)track.Item;
                 trackLength = ft.DurationMs;
@@ -508,7 +509,6 @@ namespace Topify
 
         private void PlacementOption3_MouseUp(object sender, MouseButtonEventArgs e)
         {
-            int scrHeight = Screen.PrimaryScreen.WorkingArea.Height;
             int scrWidth = Screen.PrimaryScreen.WorkingArea.Width;
             this.Top = 25;
             this.Left = scrWidth - 385;
