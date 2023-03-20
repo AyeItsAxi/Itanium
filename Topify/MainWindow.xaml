@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:svgc="http://sharpvectors.codeplex.com/svgc/"
         mc:Ignorable="d"
-        Title="MainWindow" Height="72" Width="360" WindowStyle="None" AllowsTransparency="True" Topmost="True">
+        Title="Topify" Height="72" Width="360" WindowStyle="None" AllowsTransparency="True" Topmost="True">
     <Window.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
