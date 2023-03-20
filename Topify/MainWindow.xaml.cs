@@ -114,7 +114,6 @@ namespace Topify
             if (spClient!.Player.GetCurrentPlayback().Result.IsPlaying)
             {
                 PlaybackPlay();
-                NowPlayingProgress.Value = 0;
                 CurrentlyPlaying track = await spClient!.Player.GetCurrentlyPlaying(new PlayerCurrentlyPlayingRequest { Market = "from_token" });
                 FullTrack ft = (FullTrack)track.Item;
                 trackLength = ft.DurationMs;
@@ -203,6 +202,7 @@ namespace Topify
         private async void PreviousSong_MouseUp(object sender, MouseButtonEventArgs e)
         {
             await spClient!.Player.SkipPrevious();
+            NowPlayingProgress.Value = 0;
             await Task.Delay(200);
             await RefreshDynamicContent();
             TickStart();
@@ -224,6 +224,7 @@ namespace Topify
         private async void NextSong_MouseUp(object sender, MouseButtonEventArgs e)
         {
             await spClient!.Player.SkipNext();
+            NowPlayingProgress.Value = 0;
             await Task.Delay(200);
             await RefreshDynamicContent();
             TickStart();
