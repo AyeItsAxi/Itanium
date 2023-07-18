@@ -18,6 +18,17 @@ To get into Itanium, follow these steps:
 
 <br><br>
 
+# Uhh... How do I close it?
+To close Itanium, simply click the light colored arrow in the bottom left corner and click the X that appears in the window positioning grid.
+* ![image](https://github.com/AyeItsAxi/Itanium/assets/76423997/340f255b-c826-4db1-b194-643fd5335938)
+* ![image](https://github.com/AyeItsAxi/Itanium/assets/76423997/40880867-9ade-4bf4-a0e5-22ccac4a2fd3)
+
+### Window position can be changed within this menu as well.
+
+
+
+<br><br>
+
 ## Note from the developer
 * Itanium is highly unoptimized currently and will have lots and lots of bugs and crashes, as it's currently in a pre-release stage. These issues will be resolved over time, however I don't have very much free-time and this "over time" may be a very long time. If you are consistently experiencing issues, please let me know through the [issues](https://github.com/AyeItsAxi/Itanium/issues) tab on this repository.
 
