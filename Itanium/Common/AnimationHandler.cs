@@ -2,7 +2,7 @@
 using System.Windows;
 using System.Windows.Media.Animation;
 
-namespace Topify.Common
+namespace Itanium.Common
 {
     internal class AnimationHandler
     {

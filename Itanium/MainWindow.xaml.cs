@@ -1,28 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
+using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
+using System.IO;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using System.Timers;
 using System.Windows;
+using System.Windows.Forms;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using Topify.Common;
+using System.Windows.Threading;
+using Itanium.Common;
+using Newtonsoft.Json;
 using SpotifyAPI.Web;
 using SpotifyAPI.Web.Auth;
-using Newtonsoft.Json;
 using static SpotifyAPI.Web.Scopes;
-using System.Timers;
-using System.Drawing;
-using System.IO;
 using Image = System.Drawing.Image;
-using System.Drawing.Drawing2D;
-using System.Drawing.Imaging;
-using System.Net;
-using System.Windows.Threading;
-using System.Windows.Forms;
+using MessageBox = System.Windows.MessageBox;
 
-namespace Topify
+namespace Itanium
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -382,8 +384,11 @@ namespace Topify
             CurrentlyPlaying track = await spClient!.Player.GetCurrentlyPlaying(new PlayerCurrentlyPlayingRequest { Market = "from_token" });
             FullTrack ft = (FullTrack)track.Item;
             bool isPlaying = spClient!.Player.GetCurrentPlayback().Result.IsPlaying;
-            if (ft.Uri == null || ft.Uri != spotifyUrl)
+            if (ft.Uri != spotifyUrl)
             {
+                statusTime.Stop();
+                statusTime.Dispose();
+                statusTime = null;
                 System.Windows.Application.Current.Dispatcher.Invoke(RefreshDynamicContent, DispatcherPriority.SystemIdle);
             }
             if (isPlaying)
@@ -527,6 +532,14 @@ namespace Topify
         private void TrafficLightClose_MouseUp(object sender, MouseButtonEventArgs e)
         {
             System.Windows.Application.Current.Shutdown(1);
+        }
+
+        private void AlbumCanvasHost_OnMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (spClient!.Player.GetCurrentPlayback().Result.IsPlaying)
+            {
+                BrowserUtil.Open(new Uri(spotifyUrl));
+            }
         }
     }
 }

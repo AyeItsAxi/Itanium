@@ -7,21 +7,24 @@
     <UseWPF>true</UseWPF>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseWindowsForms>True</UseWindowsForms>
-    <ApplicationIcon>Lib\Img\TopifyIcon.ico</ApplicationIcon>
-    <Title>Topify</Title>
+    <ApplicationIcon>Lib\Img\Itanium Icon.ico</ApplicationIcon>
+    <Title>Itanium</Title>
     <Version>0.8.1.0-pre-release</Version>
     <Company>4drian.software</Company>
     <Authors>Axi</Authors>
     <AssemblyVersion>0.8.1.0</AssemblyVersion>
     <FileVersion>0.8.1.0</FileVersion>
+    <SignAssembly>False</SignAssembly>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
     <NoWarn>1701;1702;CS4014;CS8618;CS8622;CS8625;SYSLIB0014</NoWarn>
+    <WarningLevel>6</WarningLevel>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
     <NoWarn>1701;1702;CS4014;CS8618;CS8622;CS8625;SYSLIB0014</NoWarn>
+    <WarningLevel>6</WarningLevel>
   </PropertyGroup>
 
   <ItemGroup>
@@ -57,11 +60,11 @@
     <None Remove="Lib\Img\SkipPrevious.svg" />
     <None Remove="Lib\Img\Spotify.png" />
     <None Remove="Lib\Img\Spotify.svg" />
-    <None Remove="Lib\Img\TopifyIcon.ico" />
+    <None Remove="Lib\Img\Itanium Icon.ico" />
   </ItemGroup>
 
   <ItemGroup>
-    <Content Include="Lib\Img\TopifyIcon.ico" />
+    <Content Include="Lib\Img\Itanium Icon.ico" />
   </ItemGroup>
 
   <ItemGroup>
@@ -89,7 +92,7 @@
     <Resource Include="Lib\Img\SkipPrevious.svg" />
     <Resource Include="Lib\Img\Spotify.png" />
     <Resource Include="Lib\Img\Spotify.svg" />
-    <Resource Include="Lib\Img\TopifyIcon.ico" />
+    <Resource Include="Lib\Img\Itanium Icon.ico" />
   </ItemGroup>
 
 </Project>
