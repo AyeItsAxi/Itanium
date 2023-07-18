@@ -156,9 +156,9 @@
             <TextBlock x:Name="AuthifyRequiredSubtext" Foreground="White" FontFamily="/Lib/Fonts/Black/#Gotham" HorizontalAlignment="Left" Height="44" Margin="73,23,0,0" VerticalAlignment="Top" Width="256" Opacity="0.5">
                 <Run Text="     Please open your browser and grant"/>
                 <LineBreak/>
-                <Run Text="  Topify access to the listed permissions."/>
+                <Run Text="  Itanium access to the listed permissions."/>
                 <LineBreak/>
-                <Run Text="        Topify will not work without them."/>
+                <Run Text="        Itanium will not work without them."/>
             </TextBlock>
         </Grid>
         <Grid Name="WindowPositionOptionHost" Visibility="Hidden">

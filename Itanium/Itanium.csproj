@@ -9,11 +9,11 @@
     <UseWindowsForms>True</UseWindowsForms>
     <ApplicationIcon>Lib\Img\Itanium Icon.ico</ApplicationIcon>
     <Title>Itanium</Title>
-    <Version>0.8.1.0-pre-release</Version>
+    <Version>0.9.0.0-pre-release</Version>
     <Company>4drian.software</Company>
     <Authors>Axi</Authors>
-    <AssemblyVersion>0.8.1.0</AssemblyVersion>
-    <FileVersion>0.8.1.0</FileVersion>
+    <AssemblyVersion>0.9.0.0</AssemblyVersion>
+    <FileVersion>0.9.0.0</FileVersion>
     <SignAssembly>False</SignAssembly>
   </PropertyGroup>
 
